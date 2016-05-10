@@ -3,11 +3,13 @@ package br.mp.mpgo.cursoandroid;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -18,21 +20,35 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.maps.android.clustering.ClusterManager;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
-
+    private ClusterManager mClusterManager;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -69,6 +85,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient,this);
+    }
+
     @TargetApi(Build.VERSION_CODES.M)
     @Override
     public void onConnected(Bundle bundle) {
@@ -79,9 +101,55 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
         Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+
+
+        mClusterManager = new ClusterManager<MyItem>(this, mMap);
+
+        Call<Data> call = ((CoreApplication) getApplication()).service.searchPositions();
+        call.enqueue(new Callback<Data>() {
+            @Override
+            public void onResponse(Call<Data> call, Response<Data> response) {
+                mClusterManager = new ClusterManager<MyItem>(MapsActivity.this, mMap);
+                for (Posicao posicao : response.body().posicoes) {
+                    MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
+                    mClusterManager.addItem(offsetItem);
+
+                }
+                for (Poligono poligono : response.body().poligonos) {
+
+                    List<LatLng> points = new ArrayList<LatLng>();
+                    for(Ponto ponto : poligono.pontos){
+                        points.add(new LatLng(ponto.latitude, ponto.longitude));
+                    }
+                    mMap.addPolygon(new PolygonOptions()
+                            .addAll(points)
+                            .strokeColor(Color.RED)
+                            .fillColor(Color.BLUE));
+                }
+                for (Circulo circulo : response.body().circulos) {
+                    LatLng center = new LatLng(circulo.latitude, circulo.longitude);
+                    mMap.addCircle(new CircleOptions()
+                            .center(center)
+                            .radius(circulo.raio)
+                            .strokeColor(Color.RED)
+                            .fillColor(Color.BLUE));
+
+                }
+                mMap.setOnCameraChangeListener(mClusterManager);
+                mMap.setOnMarkerClickListener(mClusterManager);
+            }
+
+            @Override
+            public void onFailure(Call<Data> call, Throwable t) {
+                Log.e("CURSO", "Pepino: " + t.getLocalizedMessage());
+            }
+        });
+
+
         LatLng eu = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        mMap.addMarker(new MarkerOptions().position(eu).title("Estou aqui"));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(eu, 16));
+        MyItem offsetItem = new MyItem(eu.latitude, eu.longitude);
+        mClusterManager.addItem(offsetItem);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(eu, 6));
 
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
@@ -96,8 +164,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onLocationChanged(Location location) {
         LatLng newPos = new LatLng(location.getLatitude(), location.getLongitude());
-        mMap.addMarker(new MarkerOptions().position(newPos).title("Estou aqui"));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newPos, 16));
+        MyItem offsetItem = new MyItem(newPos.latitude, newPos.longitude);
+        mClusterManager.addItem(offsetItem);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newPos, 6));
     }
 
 }
