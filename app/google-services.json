@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "130774206996",
+    "project_id": "curso-android-d2082"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:130774206996:android:07317bccb6fb3578",
+        "android_client_info": {
+          "package_name": "br.mp.mpgo.cursoandroid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "130774206996-g9mdhs670b1lt8a4pcbvertglrc7268l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.mp.mpgo.cursoandroid",
+            "certificate_hash": "B9C9C541B06935BBB9A68083AAF0E22A2A5570D5"
+          }
+        },
+        {
+          "client_id": "130774206996-ifkab571sj7q754s552n2qqs6f8ud37k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxH0NIYNLFJWtQkSchH1nRONEbb6bsQM8"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
