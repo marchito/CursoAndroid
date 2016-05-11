@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import br.mp.mpgo.cursoandroid.database.PosicaoDbHelper;
+import br.mp.mpgo.cursoandroid.util.Conectividade;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -40,6 +42,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
     private ClusterManager mClusterManager;
+
+    private PosicaoDbHelper dbHelper;
 
 
     @Override
@@ -84,6 +88,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLocationRequest.setFastestInterval(5000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
+        dbHelper = new PosicaoDbHelper(this);
+
 
     }
 
@@ -102,50 +108,63 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
             return;
         }
+
+
         Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-
-
         mClusterManager = new ClusterManager<MyItem>(this, mMap);
 
-        Call<Data> call = ((CoreApplication) getApplication()).service.searchPositions();
-        call.enqueue(new Callback<Data>() {
-            @Override
-            public void onResponse(Call<Data> call, Response<Data> response) {
-                mClusterManager = new ClusterManager<MyItem>(MapsActivity.this, mMap);
-                for (Posicao posicao : response.body().posicoes) {
-                    MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
-                    mClusterManager.addItem(offsetItem);
+        if(Conectividade.haveConnectivity(this)) {
+            Call<Data> call = ((CoreApplication) getApplication()).service.searchPositions();
+            call.enqueue(new Callback<Data>() {
+                @Override
+                public void onResponse(Call<Data> call, Response<Data> response) {
+                    mClusterManager = new ClusterManager<MyItem>(MapsActivity.this, mMap);
+                    for (Posicao posicao : response.body().posicoes) {
+                        dbHelper.create(posicao);
+                        MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
+                        mClusterManager.addItem(offsetItem);
 
-                }
-                for (Poligono poligono : response.body().poligonos) {
-
-                    List<LatLng> points = new ArrayList<LatLng>();
-                    for(Ponto ponto : poligono.pontos){
-                        points.add(new LatLng(ponto.latitude, ponto.longitude));
                     }
-                    mMap.addPolygon(new PolygonOptions()
-                            .addAll(points)
-                            .strokeColor(Color.RED)
-                            .fillColor(Color.BLUE));
-                }
-                for (Circulo circulo : response.body().circulos) {
-                    LatLng center = new LatLng(circulo.latitude, circulo.longitude);
-                    mMap.addCircle(new CircleOptions()
-                            .center(center)
-                            .radius(circulo.raio)
-                            .strokeColor(Color.RED)
-                            .fillColor(Color.BLUE));
+                    for (Poligono poligono : response.body().poligonos) {
 
+                        List<LatLng> points = new ArrayList<LatLng>();
+                        for (Ponto ponto : poligono.pontos) {
+                            points.add(new LatLng(ponto.latitude, ponto.longitude));
+                        }
+                        mMap.addPolygon(new PolygonOptions()
+                                .addAll(points)
+                                .strokeColor(Color.RED)
+                                .fillColor(Color.BLUE));
+                    }
+                    for (Circulo circulo : response.body().circulos) {
+                        LatLng center = new LatLng(circulo.latitude, circulo.longitude);
+                        mMap.addCircle(new CircleOptions()
+                                .center(center)
+                                .radius(circulo.raio)
+                                .strokeColor(Color.RED)
+                                .fillColor(Color.BLUE));
+
+                    }
+                    mMap.setOnCameraChangeListener(mClusterManager);
+                    mMap.setOnMarkerClickListener(mClusterManager);
                 }
-                mMap.setOnCameraChangeListener(mClusterManager);
-                mMap.setOnMarkerClickListener(mClusterManager);
+
+                @Override
+                public void onFailure(Call<Data> call, Throwable t) {
+                    Log.e("CURSO", "Pepino: " + t.getLocalizedMessage());
+                }
+            });
+        }else{
+            List<Posicao> posicoes = dbHelper.read();
+
+            for (Posicao posicao : posicoes) {
+                MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
+                mClusterManager.addItem(offsetItem);
             }
 
-            @Override
-            public void onFailure(Call<Data> call, Throwable t) {
-                Log.e("CURSO", "Pepino: " + t.getLocalizedMessage());
-            }
-        });
+            mMap.setOnCameraChangeListener(mClusterManager);
+            mMap.setOnMarkerClickListener(mClusterManager);
+        }
 
 
         LatLng eu = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
