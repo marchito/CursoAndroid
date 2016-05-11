@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import br.mp.mpgo.cursoandroid.database.CirculoDbHelper;
 import br.mp.mpgo.cursoandroid.database.PosicaoDbHelper;
 import br.mp.mpgo.cursoandroid.util.Conectividade;
 import retrofit2.Call;
@@ -43,7 +44,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationRequest mLocationRequest;
     private ClusterManager mClusterManager;
 
-    private PosicaoDbHelper dbHelper;
+    private PosicaoDbHelper dbPositionHelper;
+    private CirculoDbHelper dbCirleHelper;
 
 
     @Override
@@ -88,7 +90,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLocationRequest.setFastestInterval(5000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
-        dbHelper = new PosicaoDbHelper(this);
+        dbPositionHelper = new PosicaoDbHelper(this);
+        dbCirleHelper = new CirculoDbHelper(this);
 
 
     }
@@ -96,7 +99,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient,this);
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -118,13 +121,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             call.enqueue(new Callback<Data>() {
                 @Override
                 public void onResponse(Call<Data> call, Response<Data> response) {
-                    mClusterManager = new ClusterManager<MyItem>(MapsActivity.this, mMap);
-                    for (Posicao posicao : response.body().posicoes) {
-                        dbHelper.create(posicao);
-                        MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
-                        mClusterManager.addItem(offsetItem);
 
+                    if(response.body().posicoes.size() > 0){
+                        dbPositionHelper.clear();
+                        dbPositionHelper.createMany(response.body().posicoes);
+                        addMarkersToCluster(response.body().posicoes);
                     }
+
+                    mClusterManager = new ClusterManager<MyItem>(MapsActivity.this, mMap);
+
                     for (Poligono poligono : response.body().poligonos) {
 
                         List<LatLng> points = new ArrayList<LatLng>();
@@ -136,17 +141,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .strokeColor(Color.RED)
                                 .fillColor(Color.BLUE));
                     }
-                    for (Circulo circulo : response.body().circulos) {
-                        LatLng center = new LatLng(circulo.latitude, circulo.longitude);
-                        mMap.addCircle(new CircleOptions()
-                                .center(center)
-                                .radius(circulo.raio)
-                                .strokeColor(Color.RED)
-                                .fillColor(Color.BLUE));
 
+                    if(response.body().circulos.size() > 0){
+                        dbCirleHelper.clear();
+                        dbCirleHelper.createMany(response.body().circulos);
+                        addCirclesToMap(response.body().circulos);
                     }
+
                     mMap.setOnCameraChangeListener(mClusterManager);
                     mMap.setOnMarkerClickListener(mClusterManager);
+//                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mClusterManager.getMarkerCollection().getMarkers().iterator().next().getPosition(), 6));
                 }
 
                 @Override
@@ -155,24 +159,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
         }else{
-            List<Posicao> posicoes = dbHelper.read();
+            List<Posicao> posicoes = dbPositionHelper.read();
+            addMarkersToCluster(posicoes);
+            List<Circulo> circulos = dbCirleHelper.read();
+            addCirclesToMap(circulos);
 
-            for (Posicao posicao : posicoes) {
-                MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
-                mClusterManager.addItem(offsetItem);
-            }
-
-            mMap.setOnCameraChangeListener(mClusterManager);
-            mMap.setOnMarkerClickListener(mClusterManager);
         }
 
 
-        LatLng eu = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        MyItem offsetItem = new MyItem(eu.latitude, eu.longitude);
-        mClusterManager.addItem(offsetItem);
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(eu, 6));
+        if(mLastLocation != null)
+        {
+            LatLng eu = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            MyItem offsetItem = new MyItem(eu.latitude, eu.longitude);
+            mClusterManager.addItem(offsetItem);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(eu, 6));
+        }
 
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
+
+    private void addMarkersToCluster(List<Posicao> posicoes){
+        for (Posicao posicao : posicoes) {
+            MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
+            mClusterManager.addItem(offsetItem);
+        }
+        mMap.setOnCameraChangeListener(mClusterManager);
+        mMap.setOnMarkerClickListener(mClusterManager);
+    }
+
+    private void addCirclesToMap(List<Circulo> circulos){
+        for (Circulo circulo : circulos) {
+            dbCirleHelper.create(circulo);
+            LatLng center = new LatLng(circulo.latitude, circulo.longitude);
+            mMap.addCircle(new CircleOptions()
+                    .center(center)
+                    .radius(circulo.raio)
+                    .strokeColor(Color.RED)
+                    .fillColor(Color.BLUE));
+
+        }
     }
 
     @Override

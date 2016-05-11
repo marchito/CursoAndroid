@@ -14,33 +14,10 @@ import br.mp.mpgo.cursoandroid.Posicao;
 /**
  * Created by pedrorcagarcia on 11/05/16.
  */
-public class PosicaoDbHelper extends SQLiteOpenHelper{
-    public static final int DB_VERSION = 1;
-    private Posicao posicao;
-    private SQLiteDatabase db;
+public class PosicaoDbHelper extends CursoAndroidDb{
 
     public PosicaoDbHelper(Context ctx){
-        super(ctx, PosicaoContract.TABLE_NAME, null, DB_VERSION);
-    }
-
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-        //Ciclo de vida do App
-        //Roda uma vez na execucao
-
-        db.execSQL(PosicaoContract.SQL_CREATE_ENTRIES);
-    }
-
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        //Muda versao do DB pra cima
-        //Novas tabelas etc
-    }
-
-    @Override
-    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        super.onDowngrade(db, oldVersion, newVersion);
-        //Muda versao do DB pra baixo
+        super(ctx);
     }
 
     public void create(Posicao posicao){
@@ -51,9 +28,28 @@ public class PosicaoDbHelper extends SQLiteOpenHelper{
         ContentValues cv = new ContentValues();
         cv.put(PosicaoContract.COLUMN_NAME_NAME, posicao.name);
         cv.put(PosicaoContract.COLUMN_NAME_LAT, posicao.latitude);
-        cv.put(PosicaoContract.COLUMN_NAME_NAME, posicao.longitude);
+        cv.put(PosicaoContract.COLUMN_NAME_LNG, posicao.longitude);
 
         db.insert(PosicaoContract.TABLE_NAME, null, cv);
+
+        db.close();
+    }
+
+    public void createMany(List<Posicao> posicoes){
+
+        if(!db.isOpen() || db.isReadOnly()){
+            db = getWritableDatabase();
+        }
+
+        for(Posicao posicao : posicoes){
+            ContentValues cv = new ContentValues();
+            cv.put(PosicaoContract.COLUMN_NAME_NAME, posicao.name);
+            cv.put(PosicaoContract.COLUMN_NAME_LAT, posicao.latitude);
+            cv.put(PosicaoContract.COLUMN_NAME_LNG, posicao.longitude);
+
+            db.insert(PosicaoContract.TABLE_NAME, null, cv);
+        }
+
 
         db.close();
     }
@@ -92,7 +88,7 @@ public class PosicaoDbHelper extends SQLiteOpenHelper{
         ContentValues cv = new ContentValues();
         cv.put(PosicaoContract.COLUMN_NAME_NAME, posicao.name);
         cv.put(PosicaoContract.COLUMN_NAME_LAT, posicao.latitude);
-        cv.put(PosicaoContract.COLUMN_NAME_NAME, posicao.longitude);
+        cv.put(PosicaoContract.COLUMN_NAME_LNG, posicao.longitude);
 
         db.update(PosicaoContract.TABLE_NAME,
                 cv,
