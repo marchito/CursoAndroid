@@ -22,12 +22,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.maps.android.clustering.ClusterManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import br.mp.mpgo.cursoandroid.database.CirculoDbHelper;
@@ -53,24 +51,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
-
-
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
 
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -150,7 +136,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     mMap.setOnCameraChangeListener(mClusterManager);
                     mMap.setOnMarkerClickListener(mClusterManager);
-//                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mClusterManager.getMarkerCollection().getMarkers().iterator().next().getPosition(), 6));
                 }
 
                 @Override
@@ -165,7 +150,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             addCirclesToMap(circulos);
 
         }
-
 
         if(mLastLocation != null)
         {
@@ -196,17 +180,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .radius(circulo.raio)
                     .strokeColor(Color.RED)
                     .fillColor(Color.BLUE));
-
         }
     }
 
     @Override
-    public void onConnectionSuspended(int i) {}
+    public void onConnectionSuspended(int i) {
+
+    }
 
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
     }
+
     @Override
     public void onLocationChanged(Location location) {
         LatLng newPos = new LatLng(location.getLatitude(), location.getLongitude());

@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
-        if (accessToken == null) {
+        if (accessToken == null && SharedManager.getBoolean(this, "loginGoogle")) {
             LoginButton loginButton = (LoginButton) findViewById(R.id.login_button);
 
             loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
@@ -102,11 +102,10 @@ public class MainActivity extends AppCompatActivity {
     private void handleSignInResult(GoogleSignInResult result) {
         if (result.isSuccess()) {
             GoogleSignInAccount acct = result.getSignInAccount();
-            Log.d("CURSO", "displayname: " + acct.getDisplayName());
-            Log.d("CURSO", "displayname: " + acct.getEmail());
-
+            SharedManager.saveBoolean(this, "loginGoogle", true);
             proximaTela();
         } else {
+            // Signed out, show unauthenticated UI.
             Log.d("CURSO", "sign out");
         }
     }
