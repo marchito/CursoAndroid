@@ -1,6 +1,8 @@
 package br.mp.mpgo.cursoandroid;
 
-public class Posicao {
+import java.io.Serializable;
+
+public class Posicao implements Serializable{
 
     public int id;
     public String name;
@@ -12,5 +14,10 @@ public class Posicao {
         this.name = name;
         this.latitude =  latitude;
         this.longitude = longitude;
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }

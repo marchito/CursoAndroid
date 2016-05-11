@@ -2,6 +2,7 @@ package br.mp.mpgo.cursoandroid;
 
 import android.Manifest;
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -10,6 +11,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -44,6 +46,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private PosicaoDbHelper dbPositionHelper;
     private CirculoDbHelper dbCirleHelper;
+    private List<Posicao> posicoes;
 
 
     @Override
@@ -133,9 +136,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         dbCirleHelper.createMany(response.body().circulos);
                         addCirclesToMap(response.body().circulos);
                     }
-
-                    mMap.setOnCameraChangeListener(mClusterManager);
-                    mMap.setOnMarkerClickListener(mClusterManager);
                 }
 
                 @Override
@@ -162,13 +162,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
 
+    private void setClasterCameraListeners(){
+        mMap.setOnCameraChangeListener(mClusterManager);
+        mMap.setOnMarkerClickListener(mClusterManager);
+    }
+
     private void addMarkersToCluster(List<Posicao> posicoes){
+        this.posicoes = posicoes;
         for (Posicao posicao : posicoes) {
             MyItem offsetItem = new MyItem(posicao.latitude, posicao.longitude);
             mClusterManager.addItem(offsetItem);
         }
-        mMap.setOnCameraChangeListener(mClusterManager);
-        mMap.setOnMarkerClickListener(mClusterManager);
+        setClasterCameraListeners();
     }
 
     private void addCirclesToMap(List<Circulo> circulos){
@@ -198,7 +203,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng newPos = new LatLng(location.getLatitude(), location.getLongitude());
         MyItem offsetItem = new MyItem(newPos.latitude, newPos.longitude);
         mClusterManager.addItem(offsetItem);
+        setClasterCameraListeners();
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newPos, 6));
+    }
+
+    public void mostrarLista(View view){
+        ContainerPosicao containerPosicao = new ContainerPosicao();
+        containerPosicao.posicoes = posicoes;
+        Intent intent = new Intent(this, ListaLocais.class);
+        intent.putExtra("listaItens", containerPosicao);
+        startActivity(intent);
+    }
+
+    public void mostrarMapa(View view){
+        //TODO criar método
     }
 
 }
